@@ -2,6 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { SolanaTwitter } from '../target/types/solana_twitter';
 import * as assert from "assert";
+import * as bs58 from "bs58";
 
 describe('solana-twitter', () => {
   const idl = JSON.parse(
@@ -144,4 +145,54 @@ describe('solana-twitter', () => {
     // then
     assert.fail('내용이 280자를 넘기지 않았습니다.');
   })
+
+  it('모든 트윗을 가져올 수 있다.', async() => {
+    const tweetAccounts = await program.account.tweet.all();
+    assert.ok(tweetAccounts.length);
+  })
+
+  it('트윗을 작성자에 따라 분류할 수 있다.', async() => {
+    // given
+    const authorPublicKey = provider.wallet.publicKey;
+
+    // when
+    const tweetAccounts = await program.account.tweet.all([
+      {
+        memcmp: {
+          offset: 8, // Discriminator.
+          bytes: authorPublicKey.toBase58(),
+        }
+      }
+    ]);
+
+    // then
+    assert.equal(tweetAccounts.length, 2);
+    assert.ok(tweetAccounts.every(tweetAccount => {
+      return tweetAccount.account.author.toBase58() === authorPublicKey.toBase58()
+    }))
+  })
+
+  it('토픽 [WEB3] 에 따라 트윗을 분류할 수 있다', async () => {
+    // given
+    const TOPIC = 'WEB3'
+
+    // when
+    const tweetAccounts = await program.account.tweet.all([
+      {
+        memcmp: {
+          offset: 8 + // Discriminator.
+              32 + // Author public key.
+              8 + // Timestamp.
+              4, // Topic string prefix.
+          bytes: bs58.encode(Buffer.from(TOPIC)),
+        }
+      }
+    ]);
+
+    // then
+    assert.equal(tweetAccounts.length, 1);
+    assert.ok(tweetAccounts.every(tweetAccount => {
+      return tweetAccount.account.topic === TOPIC
+    }))
+  });
 });
