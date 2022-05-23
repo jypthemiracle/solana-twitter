@@ -118,4 +118,30 @@ describe('solana-twitter', () => {
     // then
     assert.fail('50자를 넘기지 않았습니다.');
   })
+
+  it('컨텐츠는 280자를 넘길 수 없고, 넘기는 경우 오류를 반환한다.', async() => {
+    // given
+    const TOPIC = 'WEB3'
+    const CONTENT_WITH_281_CHARS = 'x'.repeat(281);
+
+    // when
+    try {
+      const tweet = anchor.web3.Keypair.generate();
+      await program.rpc.sendTweet(TOPIC, CONTENT_WITH_281_CHARS, {
+        accounts: {
+          tweet: tweet.publicKey,
+          author: provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [tweet],
+      });
+    } catch (error) {
+      const ERROR_MESSAGE = error.error.errorMessage;
+      assert.equal(ERROR_MESSAGE, '내용이 280자를 넘겼습니다.')
+      return;
+    }
+
+    // then
+    assert.fail('내용이 280자를 넘기지 않았습니다.');
+  })
 });
