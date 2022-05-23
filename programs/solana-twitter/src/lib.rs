@@ -61,8 +61,8 @@ impl Tweet {
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("The provided topic should be 50 characters long maximum.")]
+    #[msg("토픽이 50자를 넘겼습니다.")]
     TopicTooLong,
-    #[msg("The provided content should be 280 characters long maximum.")]
+    #[msg("내용이 280자를 넘겼습니다.")]
     ContentTooLong,
 }

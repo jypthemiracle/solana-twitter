@@ -92,4 +92,30 @@ describe('solana-twitter', () => {
     assert.equal(tweetAccount.content, CONTENT);
     assert.ok(tweetAccount.timestamp);
   })
+
+  it('토픽은 50자를 넘길 수 없고, 넘기는 경우 오류를 반환한다.', async() => {
+    // given
+    const TOPIC_WITH_51_CHARS = 'x'.repeat(51);
+    const CONTENT = "Crypto is eating the world";
+
+    // when
+    try {
+      const tweet = anchor.web3.Keypair.generate();
+      await program.rpc.sendTweet(TOPIC_WITH_51_CHARS, CONTENT, {
+        accounts: {
+          tweet: tweet.publicKey,
+          author: provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [tweet],
+      });
+    } catch (error) {
+      const ERROR_MESSAGE = error.error.errorMessage;
+      assert.equal(ERROR_MESSAGE, '토픽이 50자를 넘겼습니다.')
+      return;
+    }
+
+    // then
+    assert.fail('50자를 넘기지 않았습니다.');
+  })
 });
