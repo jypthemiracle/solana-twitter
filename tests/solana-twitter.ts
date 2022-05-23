@@ -63,5 +63,33 @@ describe('solana-twitter', () => {
     assert.equal(tweetAccount.topic, EMPTY);
     assert.equal(tweetAccount.content, GOOD_MORNING);
     assert.ok(tweetAccount.timestamp);
+  });
+
+  it('새로운 사용자가 트윗 하나를 계정 생성하여 전송할 수 있다.', async() => {
+    // given
+    const user2 = anchor.web3.Keypair.generate();
+    const tweet = anchor.web3.Keypair.generate();
+    const signature = await provider.connection.requestAirdrop(user2.publicKey, 1000000000);
+    await provider.connection.confirmTransaction(signature);
+
+    const TOPIC = "I AM SIGRID JIN";
+    const CONTENT = "I LOVE SOLANA IT GOES TO THE MOON"
+
+    // when
+    await program.rpc.sendTweet(TOPIC, CONTENT, {
+      accounts: {
+        tweet: tweet.publicKey,
+        author: user2.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [user2, tweet],
+    })
+
+    // then
+    const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
+    assert.equal(tweetAccount.author.toBase58(), user2.publicKey.toBase58());
+    assert.equal(tweetAccount.topic, TOPIC);
+    assert.equal(tweetAccount.content, CONTENT);
+    assert.ok(tweetAccount.timestamp);
   })
 });
