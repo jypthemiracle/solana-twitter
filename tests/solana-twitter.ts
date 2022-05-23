@@ -15,10 +15,14 @@ describe('solana-twitter', () => {
 
   const program = new anchor.Program(idl, programId)
 
-  it('can send a new tweet', async () => {
-    // Call the "SendTweet" instruction.
+  it('트윗 하나 계정을 생성하여 전송할 수 있다', async () => {
+    // given
+    const TOPIC = "WEB3"
+    const CONTENT = "Crypto is eating the world"
+
+    // when
     const tweet = anchor.web3.Keypair.generate();
-    await program.rpc.sendTweet('veganism', 'Hummus, am I right?', {
+    await program.rpc.sendTweet(TOPIC, CONTENT, {
       accounts: {
         tweet: tweet.publicKey,
         author: provider.wallet.publicKey,
@@ -27,13 +31,37 @@ describe('solana-twitter', () => {
       signers: [tweet],
     });
 
-    // Fetch the account details of the created tweet.
+    // then
     const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
 
-    // Ensure it has the right data.
     assert.equal(tweetAccount.author.toBase58(), provider.wallet.publicKey.toBase58());
-    assert.equal(tweetAccount.topic, 'veganism');
-    assert.equal(tweetAccount.content, 'Hummus, am I right?');
+    assert.equal(tweetAccount.topic, TOPIC);
+    assert.equal(tweetAccount.content, CONTENT);
     assert.ok(tweetAccount.timestamp);
   });
+
+  it('토픽 없이 트윗 하나를 생성하여 전송할 수 있다', async() => {
+    // given
+    const tweet = anchor.web3.Keypair.generate();
+    const EMPTY = '';
+    const GOOD_MORNING = 'GM';
+
+    // when
+    await program.rpc.sendTweet(EMPTY, GOOD_MORNING, {
+      accounts: {
+        tweet: tweet.publicKey,
+        author: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [tweet],
+    })
+
+    // then
+    const tweetAccount = await program.account.tweet.fetch(tweet.publicKey);
+
+    assert.equal(tweetAccount.author.toBase58(), provider.wallet.publicKey.toBase58());
+    assert.equal(tweetAccount.topic, EMPTY);
+    assert.equal(tweetAccount.content, GOOD_MORNING);
+    assert.ok(tweetAccount.timestamp);
+  })
 });
